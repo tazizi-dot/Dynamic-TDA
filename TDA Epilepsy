@@ -1,0 +1,194 @@
+TS = np.array(
+    [np.loadtxt('C:/Users/Marjan/Desktop/Epileptic Seizure EEG Dataset/ch{:02d}.inp'.format(i)) for i in range(1, 22) if i not in [11, 12, 20]]
+).T
+TS -= TS.mean(axis=0)
+TS /= TS.std(axis=0)
+
+
+plt.figure(figsize=(8, 1))
+l=plt.plot(TS[:,10], 'k-')
+plt.setp(l, 'markersize', 2)
+plt.setp(l, 'markerfacecolor', 'C0')
+plt.ylabel('Channel', fontsize=16)
+plt.xlabel('Time t', fontsize=16)
+plt.show()
+
+
+def getTotalPersistence(dgm, dim=0):
+    """
+    Parameters
+    ----------
+    
+    dgm : list of arrays
+       Each array consists of (birth, death) pairs representing the scales at which a topological features appears.
+    dim : int
+       Specifies the dimension to be analyzed, i.e., the array on which we compute total persistence.
+
+    Returns
+    -------
+    total_persistence : float
+       The total persistence (sum of death minus birth times) for features of dimension dim.
+    """
+
+    total_persistence = 0
+    for b, d in dgm[dim]:
+        if d != float("inf"): 
+            total_persistence += d - b
+    
+    return total_persistence
+    
+    
+    
+    T, P = TS.shape
+n = 100
+
+TP_0 = []
+TP_1 = []
+TP_2 = []
+
+for i_s, i_e in zip(range(0, T-n, 100), range(n, T, 100)):
+    # Sliding window emedding
+    SW_data = TS[i_s:i_e]
+    SW_tda = ripser(X=SW_data, maxdim=2)
+    SW_diagrams = SW_tda['dgms']
+    # Computing total persistence
+    total_persistence_0 = getTotalPersistence(SW_diagrams, dim=0)
+    total_persistence_1 = getTotalPersistence(SW_diagrams, dim=1)
+    total_persistence_2 = getTotalPersistence(SW_diagrams, dim=2)
+    # Storing total persistence
+    TP_0.append(total_persistence_0)
+    TP_1.append(total_persistence_1)
+    TP_2.append(total_persistence_2)    
+
+TP_0 = np.array(TP_0)
+TP_1 = np.array(TP_1)
+TP_2 = np.array(TP_2)
+
+
+
+plt.figure(figsize=(14, 2))
+plt.subplot(131)
+l = plt.plot(TP_0, 'b-')
+plt.setp(l, 'markersize', 2)
+plt.setp(l, 'markerfacecolor', 'C0')
+plt.xlabel('epoch')
+plt.ylabel('Total persistence - 0D')
+
+plt.subplot(132)
+l = plt.plot(TP_1, 'y-')
+plt.setp(l, 'markersize', 2)
+plt.setp(l, 'markerfacecolor', 'C0')
+plt.xlabel('epoch')
+plt.ylabel('Total persistence - 1D')
+
+plt.subplot(133)
+l = plt.plot(TP_2, 'g-')
+plt.setp(l, 'markersize', 2)
+plt.setp(l, 'markerfacecolor', 'C0')
+plt.xlabel('epoch')
+plt.ylabel('Total persistence - 2D')
+plt.show()
+
+
+
+
+# To build persistence diagrams:
+# X: A cloud of points or a distance matrix
+# maxdim: Maximum dimension of topological features to be considered
+tda_SW_data = ripser(SW_data, maxdim=2)
+print(tda_SW_data.keys())
+
+
+
+
+diagrams_SW_data = tda_SW_data['dgms']
+print("Number of dimensions: ", len(diagrams_SW_data))
+print()
+print("2D-Features: ", diagrams_SW_data[2])
+print()
+print("1D-Features: ", diagrams_SW_data[1][:5])
+
+
+
+plt.figure(figsize=(4, 4))
+
+# Plots the persistence diagram for all dimensions
+persim.plot_diagrams(diagrams_SW_data)
+plt.show()
+
+
+
+
+start = 0
+stop = 6
+num_steps = 200
+x_scale = np.linspace(start, stop, num_steps)
+
+# Will be used to build 1D landscapes
+pl_1_builder = landscapes.PersistenceLandscaper(
+    hom_deg=1,           # Dimension of the features in the PD
+    start=start,         # Starting scale (landscape support)
+    stop=stop,           # Stoping scale (landscape support)
+    num_steps=num_steps, # Scale resolution resolution
+    flatten=True)        # To return one landscape curve
+
+# Will be used to build 2D landscapes
+pl_2_builder = landscapes.PersistenceLandscaper(
+    hom_deg=2,           # Dimension of the features in the PD
+    start=start,         # Starting scale (landscape support)
+    stop=stop,           # Stoping scale (landscape support)
+    num_steps=num_steps, # Scale resolution resolution
+    flatten=True)        # To return one landscape curve
+    
+    
+    
+    
+    
+    # 1D Homology
+pl_1_SW_data = pl_1_builder.fit_transform(diagrams_SW_data) 
+
+# To reshape the landscape curve into multiple layers
+pl_1_SW_data = np.reshape(pl_1_SW_data, (num_steps, len(pl_1_SW_data)//num_steps), order='F')
+
+# 2D Homology
+pl_2_SW_data = pl_2_builder.fit_transform(diagrams_SW_data)
+
+# To reshape the landscape curve into multiple layers
+pl_2_SW_data = np.reshape(pl_2_SW_data, (num_steps, len(pl_2_SW_data)//num_steps), order='F')
+
+
+
+
+
+plt.figure(figsize=(4, 4))
+
+plt.title('EEG: 1D-PH')
+plt.ylim([0, 2])
+plt.plot(x_scale, pl_1_SW_data[:, :4]) # Plots the first K layers of the PL
+plt.legend(('$\lambda_0$', '$\lambda_1$', '$\lambda_2$', '$\lambda_3$'))
+
+plt.show()
+
+
+
+
+
+
+
+
+
+
+    
+    
+    
+
+
+
+
+
+    
+    
+    
+    
+    
+
